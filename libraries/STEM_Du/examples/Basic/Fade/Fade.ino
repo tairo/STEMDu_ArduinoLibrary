@@ -8,14 +8,8 @@
  *
  */
 
-/*** Setup for using Library ***/
-//#define TYPE_I
-//#define TYPE_II
-#define TYPE_III
-//#define TYPE_III_R
-//#define USE_PHREF
+/*** Include Headerfile for STEM Du ***/
 #include <STEMDu.h>
-/*** end of setup for using Library ***/
 
 /* Initialize STEM Du board */
 STEMDu robot = STEMDu();

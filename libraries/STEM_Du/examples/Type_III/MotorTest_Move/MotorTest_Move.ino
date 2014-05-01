@@ -1,7 +1,7 @@
 /*
  * STEM Du Library
  *
- * MotorTest
+ * MotorTest_Move
  *
  * This example code is in the public domain.
  *
@@ -27,25 +27,20 @@ void setup() {
 
 // the loop routine runs over and over again forever:
 void loop() {
-  int speed = map(robot.readSlider(),0,1023,0,255); // Read value of slider to control the speed
-  int lightValue = robot.readLight();
+  int angle = map(robot.readSlider(),0,1023,0,359); // Read value of slider to control the direction
+  int speed = 255;
+  int pushsw = robot.readPush();
 
 #if defined(STEMDU_DEBUG)
-  // print out the value you read:
+  // print out the angle:
   // JUST FOR DEBUG
-  Serial.println(lightValue);
+  Serial.println(angle);
 #endif
 
-  if(lightValue<threshold){
-    robot.forwardM1(speed);
-    robot.forwardM2(speed);
-    robot.forwardM3(speed);
-    robot.forwardM4(speed);
+  if(pushsw){
+    robot.stopM1M2();
   }
   else{
-    robot.backwardM1(speed);
-    robot.backwardM2(speed);
-    robot.backwardM3(speed);
-    robot.backwardM4(speed);
+    robot.moveM1M2(angle, speed);
   }
 }
