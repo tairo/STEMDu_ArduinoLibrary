@@ -7,14 +7,16 @@
 #include "WProgram.h"
 #endif
 
-#if !defined(NANOBOARD_AG) && !defined(CHIBIDUINO) && !defined(JRTA1) && !defined(RDC_102_NO_MARK) && !defined(RDC_102_R0) && !defined(RDC_102_R1) && !defined(RDC_102_R2)
+#if !defined(NANOBOARD_AG) && !defined(CHIBIDUINO) && !defined(JRTA1) && !defined(RDC_102_NO_MARK) && !defined(RDC_102_R0) && !defined(RDC_102_R1) && !defined(RDC_102_R2) && !defined(RDC_102_R3) && !defined(RDC_102_R4)
 //#define NANOBOARD_AG
 //#define CHIBIDUINO
 //#define JRTA1
 //#define RDC_102_NO_MARK
 //#define RDC_102_R0
 //#define RDC_102_R1
-#define RDC_102_R2
+//#define RDC_102_R2
+//#define RDC_102_R3
+#define RDC_102_R4
 #endif
 
 #if !defined(TYPE_I) && !defined(TYPE_II) && !defined(TYPE_III) && !defined(TYPE_III_R)
@@ -39,6 +41,9 @@
 #define MOTOR3 3
 #define MOTOR4 4
 ////////////////////////////////////////////////////////
+
+// Definitions.
+#define BUILTIN_DISTANCE_BUFFER_SIZE 45     // use an odd number
 
 
 class STEMDu {
@@ -108,11 +113,18 @@ public:
   void initPush();
   bool readPush();
   
+#if defined(RDC_102_R4)
+  void initBuiltinDistance();
+  int readBuiltinDistance();
+#endif 
+
+#if defined(JRTA1) || defined(RDC_102_NO_MARK) || defined(RDC_102_R0) || defined(RDC_102_R1) || defined(RDC_102_R2)
   int readPhRef(int num);
   int readPhRef1();
   int readPhRef2();
   int readPhRef3();
   int readPhRef4();
+#endif
 
   //LED
   void led(bool val);
@@ -139,6 +151,22 @@ private:
   bool _has_i2c_lcd;
   bool _has_phref;
   bool _has_wireless;
+  
+#if defined(RDC_102_R4)
+  // Global variables.
+  double buf[BUILTIN_DISTANCE_BUFFER_SIZE];  // Analog readings at 100khz & stored here
+  double out[BUILTIN_DISTANCE_BUFFER_SIZE];  // output of filter stored here.
+  int buffer_index;         // Interupt increments buffer
+  boolean buffer_full;      // Flag for when complete.
+
+  double a0,a1,a2,b1,b2; // filter kernel poles
+  double f,bw;           // frequency cutoff and bandwidth
+  double r,k;            // filter coefficients
+
+  float output;
+
+  double doFilter();
+#endif
 };
 
 #endif

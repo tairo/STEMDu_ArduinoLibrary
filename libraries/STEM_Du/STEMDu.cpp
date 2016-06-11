@@ -41,8 +41,11 @@
 #define P_SOUND  0
 #define P_LIGHT  4
 #define P_SLIDER 5
-#define P_PHREF  3
 
+#define P_IRLED  11
+#define BUILTIN_DISTANCE_PWM 218
+
+#define P_PHREF  3
 #define P_MPX_PHREF1 0
 #define P_MPX_PHREF2 1
 #define P_MPX_PHREF3 10
@@ -389,6 +392,118 @@ bool STEMDu::readPush(){
 	return !digitalRead(P_PUSH);
 }
 
+#if defined(RDC_102_R4)
+void STEMDu::initBuiltinDistance(){
+  pinMode(P_IRLED,OUTPUT);
+  analogWrite(P_IRLED,BUILTIN_DISTANCE_PWM);
+
+  for(int i = 0; i < BUILTIN_DISTANCE_BUFFER_SIZE; i++ ) {
+    buf[i] = 0;
+    out[i] = 0; 
+  }
+  buffer_index = 0;
+  buffer_full = false;
+
+  output = 0;
+
+  // Lets sort out the filter variables before we end setup.
+
+  // Cut-off frequency.
+  // We are looking for a 38khz IR TV remote.
+  // F is fraction of the sample frequency 
+  // It has to be between 0 and 0.5.  Therefore, the interupt
+  // needs to be at least *double* the bandpass frequency.
+  // I picked 100khz as a nice number to scale from.
+  // So, f = (100khz * 0.38) = 38Khz
+  //f = 0.38;  
+  f = 0.25;
+  // Bandwidth (allowance) of bandpass filter.
+  // Same principle as above (fraction of 100khz).
+  // We are using this filter to get rid of ambient environment
+  // noise.  20khz seems like a big band, but I wouldn't expect 
+  // there to be much in the khz.  You can fine tune downwards.  
+  //bw = 0.2;  
+  bw = 0.1;
+
+  // Maths. Read the book.  Does the trick.
+  r = 1 - ( 3 * bw ); 
+  k = 1 - ( 2 * r * cos(2 * PI * f ) ) + ( r * r );
+  k = k / (2 - ( 2 * cos( 2 * PI * f ) ) );
+
+  a0 = 1 - k;
+  a1 = (2 * ( k -r ) ) * ( cos( 2 * PI * f ) );
+  a2 = ( r * r ) - k;
+  b1 = 2 * r * cos( 2 * PI * f );
+  b2 = 0 - ( r * r );
+}
+
+int STEMDu::readBuiltinDistance(){
+  if( buffer_index >= BUILTIN_DISTANCE_BUFFER_SIZE ) {
+    buffer_index = 0;
+    buffer_full = true; 
+  } 
+  else if ( buffer_full == false ){
+    buf[ buffer_index ] = (double)analogRead(P_LIGHT);
+    buffer_index++;  
+  }
+
+  if(buffer_full == true){
+    // Run the input buffer through the filter
+    output = doFilter();
+
+    // We are going to transmit as an integer
+    // Move up the decimal place
+    //output *= 1000;
+    //output -= 50;
+
+    output *= 1000;
+    output -= 2100; // Offset tuning 2cm:1600 2.8cm:1000
+
+    output = 7000/sqrt(output); // Amplify
+
+    // Reset our buffer and interupt routine
+    buffer_index = 0;  
+    buffer_full = false;
+  }
+
+
+  return (int)output;
+}
+
+// This filter looks at the previous elements in the 
+// input stream and output stream to compound a pre-set
+// amplification.  The amplification is set by a0,a1,a2,
+// b1,b2.  Please see the linked book, above.
+double STEMDu::doFilter() {
+  int i;
+  double sum;
+
+  // Convolute the input buffer with the filter kernel
+  // We work from 2 because we read back by 2 elements.
+  // out[0] and out[1] are never set, so we clear them.
+  out[0] = out[1] = 0;
+
+  for( i = 2; i < BUILTIN_DISTANCE_BUFFER_SIZE; i++ ) {
+    out[i] = a0 * buf[i];
+    out[i] += a1 * buf[i-1];
+    out[i] += a2 * buf[i-2];
+    out[i] += b1 * out[i-1];
+    out[i] += b2 * out[i-2]; 
+  }
+
+  // Bring all the output values above zero
+  // To get a well reinforced average reading.
+  for( i = 2; i < BUILTIN_DISTANCE_BUFFER_SIZE; i++ ) {
+    if( out[i] < 0 ) out[i] *= -1;
+    sum += out[i]; 
+  }
+  sum /= BUILTIN_DISTANCE_BUFFER_SIZE -2;
+
+  return sum; 
+}
+#endif
+
+#if defined(JRTA1) || defined(RDC_102_NO_MARK) || defined(RDC_102_R0) || defined(RDC_102_R1) || defined(RDC_102_R2)
 int STEMDu::readPhRef(int num){
 	if(num>0 && num<5){
 		digitalWrite(P_MPX_PHREF1,LOW);
@@ -434,6 +549,7 @@ int STEMDu::readPhRef3(){
 int STEMDu::readPhRef4(){
 	return this->readPhRef(4);
 }
+#endif
 
 void STEMDu::led(bool val){
 	digitalWrite(P_LED, val);

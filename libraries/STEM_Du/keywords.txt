@@ -63,6 +63,9 @@ readSlider	KEYWORD2
 initPush	KEYWORD2
 readPush	KEYWORD2
 
+initBuiltinDistance	KEYWORD2
+readBuiltinDistance KEYWORD2
+
 readPhRef	KEYWORD2
 readPhRef1	KEYWORD2
 readPhRef2	KEYWORD2
