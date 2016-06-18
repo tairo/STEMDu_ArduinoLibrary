@@ -1,9 +1,12 @@
-#include <Arduino.h> 
+#if ARDUINO >= 100
+#include "Arduino.h"
+#else
+#include "WProgram.h"
+#endif
 
 #include "STEMDu.h"
-#include "STEMDu.h"
 
-#if defined(NANOBOARD_AG) || defined(CHIBIDUINO)
+#if STEMDU == NANOBOARD_AG || STEMDU == CHIBIDUINO
 #define P_M1IN1 7
 #define P_M1IN2 8
 #define P_M1PWM 9
@@ -17,7 +20,7 @@
 #define P_M2IN1 7
 #define P_M2IN2 8
 #define P_M2PWM 9
-#if defined(JRTA_1)
+#if STEMDU == JRTA_1
 // Only JRTA-1
 #define P_M3IN1 10
 #define P_M3IN2 11
@@ -26,7 +29,6 @@
 #define P_M4IN2 1
 #define P_M4PWM 13
 #else
-// From RDC-102 No Mark
 #define P_M3IN1 0
 #define P_M3IN2 1
 #define P_M3PWM 10
@@ -42,63 +44,41 @@
 #define P_LIGHT  4
 #define P_SLIDER 5
 
+#if defined(HAS_ONBBOARD_DISTANCE)
 #define P_IRLED  11
 #define BUILTIN_DISTANCE_PWM 218
+#endif
 
+#if defined(HAS_PHREF)
 #define P_PHREF  3
 #define P_MPX_PHREF1 0
 #define P_MPX_PHREF2 1
 #define P_MPX_PHREF3 10
 #define P_MPX_PHREF4 11
+#endif
 
 STEMDu::STEMDu(){
-	this->_board_type = 3; // Default: Type III
-  	this->_has_i2c_lcd = false;
-	this->_has_phref = false;
-  	this->_has_wireless = false;
-
-	for(int i=0;i<MAX_ANALOG_PORTS;i++){
-		this->_analog_hwconf[i] = 0; // Default : no connected
-	}
-	for(int i=0;i<MAX_DIGITAL_PORTS;i++){
-		this->_digital_hwconf[i] = 0; // Default : no connected
-	}
 	this->init();
 }
 
-STEMDu::STEMDu(int type){
-	this->_board_type = type;
-  	this->_has_i2c_lcd = false;
-	this->_has_phref = false;
-  	this->_has_wireless = false;
+void STEMDu::init(){
+	pinMode(P_LED,OUTPUT);
+	pinMode(P_PUSH,INPUT_PULLUP);
 
-	for(int i=0;i<MAX_ANALOG_PORTS;i++){
-		this->_analog_hwconf[i] = 0; // Default : no connected
-	}
-	for(int i=0;i<MAX_DIGITAL_PORTS;i++){
-		this->_digital_hwconf[i] = 0; // Default : no connected
-	}
-	this->init();
-}
+	// Motor
+	pinMode(P_M1IN1,OUTPUT);
+	pinMode(P_M1IN2,OUTPUT);
+	pinMode(P_M2IN1,OUTPUT);
+	pinMode(P_M2IN2,OUTPUT);
 
-STEMDu::STEMDu(int type, int* analogHWCfg, int* digitalHWConfig){
-	this->_board_type = type;
-
-	for(int i=0;i<MAX_ANALOG_PORTS;i++){
-		this->_analog_hwconf[i] = analogHWCfg[i];
-	}
-	for(int i=0;i<MAX_DIGITAL_PORTS;i++){
-		this->_digital_hwconf[i] = digitalHWConfig[i];
-	}
-	this->init();
-}
-
-void STEMDu::enableI2CLCD(){
-	this->_has_i2c_lcd = true;
-}
-
-void STEMDu::enablePHREF(){
-	this->_has_phref = true;
+#if defined(HAS_MOTOR34)
+	pinMode(P_M3IN1,OUTPUT);
+	pinMode(P_M3IN2,OUTPUT);
+	pinMode(P_M4IN1,OUTPUT);
+	pinMode(P_M4IN2,OUTPUT);
+#endif
+	
+#if defined(HAS_PHREF)
 	pinMode(P_MPX_PHREF1,OUTPUT);
 	pinMode(P_MPX_PHREF2,OUTPUT);
 	pinMode(P_MPX_PHREF3,OUTPUT);
@@ -107,39 +87,17 @@ void STEMDu::enablePHREF(){
 	digitalWrite(P_MPX_PHREF2,LOW);
 	digitalWrite(P_MPX_PHREF3,LOW);
 	digitalWrite(P_MPX_PHREF4,LOW);
-}
+#endif
 
-void STEMDu::enableWireless(){
-	this->_has_wireless = true;
-}
+#if defined(HAS_ONBBOARD_DISTANCE)
+    pinMode(P_IRLED,OUTPUT);
+	analogWrite(P_IRLED,0);
+#endif
 
-void STEMDu::init(){
-	pinMode(P_LED,OUTPUT);
-	pinMode(P_PUSH,INPUT_PULLUP);
-
-	for(int i=0;i<MAX_DIGITAL_PORTS;i++){
-	}
-
-	// Motor
-	pinMode(P_M1IN1,OUTPUT);
-	pinMode(P_M1IN2,OUTPUT);
-	pinMode(P_M2IN1,OUTPUT);
-	pinMode(P_M2IN2,OUTPUT);
-	if(this->_board_type > 2){ //Type III or upper
-		pinMode(P_M3IN1,OUTPUT);
-		pinMode(P_M3IN2,OUTPUT);
-		pinMode(P_M4IN1,OUTPUT);
-		pinMode(P_M4IN2,OUTPUT);
-	}
-
-	// I2CLCD
-	if(this->_board_type == 2) this->enableI2CLCD();
-
-	// Photo Reflector
-	if(this->_board_type == 2) this->enablePHREF();
-
-	// Wireless
-	if(this->_board_type == 4) this->enableWireless();
+#if defined(HAS_MPU6050)
+    Wire.begin();
+    accelgyro.initialize();
+#endif
 }
 
 void STEMDu::motor(int n, int speed){
@@ -223,7 +181,6 @@ void STEMDu::tank(int n1, int n2, int speed1, int speed2){
 	this->motor(n2,speed2);
 }
 
-#if !defined(STEMDU_REDUCE_LIBRARY_SIZE)
 void STEMDu::moveM1M2(int angle, int speed){
 	this->move(1,2,angle,speed);
 }
@@ -236,6 +193,7 @@ void STEMDu::tankM1M2(int speed1, int speed2){
 	this->tank(1,2,speed1,speed2);
 }
 
+#if defined(HAS_MOTOR34)
 void STEMDu::moveM3M4(int angle, int speed){
 	this->move(3,4,angle,speed);
 }
@@ -247,6 +205,7 @@ void STEMDu::turnM3M4(int turnSpeed){
 void STEMDu::tankM3M4(int speed3, int speed4){
 	this->tank(3,4,speed3,speed4);
 }
+#endif
 
 void STEMDu::forwardM1(int speed){
 	this->motor(1,speed);
@@ -256,6 +215,7 @@ void STEMDu::forwardM2(int speed){
 	this->motor(2,speed);
 }
 
+#if defined(HAS_MOTOR34)
 void STEMDu::forwardM3(int speed){
 	this->motor(3,speed);
 }
@@ -263,6 +223,7 @@ void STEMDu::forwardM3(int speed){
 void STEMDu::forwardM4(int speed){
 	this->motor(4,speed);
 }
+#endif
 
 void STEMDu::backwardM1(int speed){
 	this->motor(1,-speed);
@@ -272,6 +233,7 @@ void STEMDu::backwardM2(int speed){
 	this->motor(2,-speed);
 }
 
+#if defined(HAS_MOTOR34)
 void STEMDu::backwardM3(int speed){
 	this->motor(3,-speed);
 }
@@ -279,6 +241,7 @@ void STEMDu::backwardM3(int speed){
 void STEMDu::backwardM4(int speed){
 	this->motor(4,-speed);
 }
+#endif
 
 void STEMDu::stopM1(){
 	this->motor(1,MOTOR_STOP);
@@ -288,6 +251,7 @@ void STEMDu::stopM2(){
 	this->motor(2,MOTOR_STOP);
 }
 
+#if defined(HAS_MOTOR34)
 void STEMDu::stopM3(){
 	this->motor(3,MOTOR_STOP);
 }
@@ -295,6 +259,7 @@ void STEMDu::stopM3(){
 void STEMDu::stopM4(){
 	this->motor(4,MOTOR_STOP);
 }
+#endif
 
 void STEMDu::brakeM1(){
 	this->motor(1,MOTOR_BRAKE);
@@ -304,6 +269,7 @@ void STEMDu::brakeM2(){
 	this->motor(2,MOTOR_BRAKE);
 }
 
+#if defined(HAS_MOTOR34)
 void STEMDu::brakeM3(){
 	this->motor(3,MOTOR_BRAKE);
 }
@@ -311,6 +277,7 @@ void STEMDu::brakeM3(){
 void STEMDu::brakeM4(){
 	this->motor(4,MOTOR_BRAKE);
 }
+#endif
 
 void STEMDu::forwardM1M2(int speed){
 	this->motor(1,speed);
@@ -342,6 +309,7 @@ void STEMDu::brakeM1M2(){
 	this->motor(2,MOTOR_BRAKE);
 }
 
+#if defined(HAS_MOTOR34)
 void STEMDu::forwardM3M4(int speed){
 	this->motor(3,speed);
 	this->motor(4,speed);
@@ -386,17 +354,18 @@ int STEMDu::readSlider(){
 }
 
 bool STEMDu::readPush(){
-	if(this->_board_type > 2){ //Type III or upper
-		pinMode(P_PUSH,INPUT_PULLUP);
-	}
+	pinMode(P_PUSH,INPUT_PULLUP);
 	return !digitalRead(P_PUSH);
 }
 
-#if defined(RDC_102_R4)
+#if defined(HAS_ONBBOARD_DISTANCE)
 void STEMDu::initBuiltinDistance(){
-  pinMode(P_IRLED,OUTPUT);
   analogWrite(P_IRLED,BUILTIN_DISTANCE_PWM);
 
+  this->initBuiltinDistanceNoBuffer();
+}
+
+void STEMDu::initBuiltinDistanceNoBuffer(){
   for(int i = 0; i < BUILTIN_DISTANCE_BUFFER_SIZE; i++ ) {
     buf[i] = 0;
     out[i] = 0; 
@@ -437,7 +406,7 @@ void STEMDu::initBuiltinDistance(){
   b2 = 0 - ( r * r );
 }
 
-int STEMDu::readBuiltinDistance(){
+double STEMDu::readBuiltinDistance(){
   if( buffer_index >= BUILTIN_DISTANCE_BUFFER_SIZE ) {
     buffer_index = 0;
     buffer_full = true; 
@@ -467,7 +436,37 @@ int STEMDu::readBuiltinDistance(){
   }
 
 
-  return (int)output;
+  return output;
+}
+
+double STEMDu::readBuiltinDistanceNoBuffer(){
+  buffer_index = 0;
+  analogWrite(P_IRLED,BUILTIN_DISTANCE_PWM);
+
+  for(buffer_index=0;buffer_index<BUILTIN_DISTANCE_BUFFER_SIZE;buffer_index++){
+    buf[ buffer_index ] = (double)analogRead(P_LIGHT);
+  }
+
+  // Run the input buffer through the filter
+  output = doFilter();
+
+  // We are going to transmit as an integer
+  // Move up the decimal place
+  //output *= 1000;
+  //output -= 50;
+
+  output *= 1000;
+  output -= 2100; // Offset tuning 2cm:1600 2.8cm:1000
+
+  output = 7000/sqrt(output); // Amplify
+
+  // Reset our buffer and interupt routine
+  buffer_index = 0;  
+  buffer_full = false;
+
+  analogWrite(P_IRLED,0);
+
+  return output;
 }
 
 // This filter looks at the previous elements in the 
@@ -503,7 +502,49 @@ double STEMDu::doFilter() {
 }
 #endif
 
-#if defined(JRTA1) || defined(RDC_102_NO_MARK) || defined(RDC_102_R0) || defined(RDC_102_R1) || defined(RDC_102_R2)
+
+#if defined(HAS_MPU6050)
+float STEMDu::readTemperature(){
+	return (accelgyro.getTemperature()+ 12412.0) / 340.0;
+}
+float STEMDu::readAccelX(){
+	int16_t ax, ay, az;
+    accelgyro.getAcceleration(&ax, &ay, &az);
+	return ax / 16384.0;
+}
+
+float STEMDu::readAccelY(){
+	int16_t ax, ay, az;
+    accelgyro.getAcceleration(&ax, &ay, &az);
+	return ay / 16384.0;
+}
+
+float STEMDu::readAccelZ(){
+	int16_t ax, ay, az;
+    accelgyro.getAcceleration(&ax, &ay, &az);
+	return az / 16384.0;
+}
+
+float STEMDu::readGyroX(){
+	int16_t gx, gy, gz;
+    accelgyro.getRotation(&gx, &gy, &gz);
+	return gx / 131.0;
+}
+
+float STEMDu::readGyroY(){
+	int16_t gx, gy, gz;
+    accelgyro.getRotation(&gx, &gy, &gz);
+	return gy / 131.0;
+}
+
+float STEMDu::readGyroZ(){
+	int16_t gx, gy, gz;
+    accelgyro.getRotation(&gx, &gy, &gz);
+	return gz / 131.0;
+}
+#endif
+
+#if defined(HAS_PHREF)
 int STEMDu::readPhRef(int num){
 	if(num>0 && num<5){
 		digitalWrite(P_MPX_PHREF1,LOW);

@@ -65,6 +65,8 @@ readPush	KEYWORD2
 
 initBuiltinDistance	KEYWORD2
 readBuiltinDistance KEYWORD2
+initBuiltinDistanceNoBuffer KEYWORD2
+readBuiltinDistanceNoBuffer KEYWORD2
 
 readPhRef	KEYWORD2
 readPhRef1	KEYWORD2
