@@ -51,6 +51,15 @@
 #define BUILTIN_DISTANCE_BUFFER_SIZE 45     // use an odd number
 #endif
 
+#if defined(HAS_SPI_LCD)
+#define SPILCD_CS 10
+#if STEMDU < RDC_103_R4
+#define SPILCD_RS 11
+#else
+#define SPILCD_RS 1
+#endif
+#endif
+
 ////////////////////////////////////////////////////////
 
 class STEMDu {
