@@ -140,6 +140,10 @@ public:
   int readSlider();
   void initPush();
   bool readPush();
+  int readResistanceA();
+  int readResistanceB();
+  int readResistanceC();
+  int readResistanceD();
 
 #if defined(HAS_MPU6050)
   float readTemperature();

@@ -44,6 +44,11 @@
 #define P_LIGHT  4
 #define P_SLIDER 5
 
+#define P_RESISTA 0
+#define P_RESISTB 1
+#define P_RESISTC 2
+#define P_RESISTD 3
+
 #if defined(HAS_ONBBOARD_DISTANCE)
 #define P_IRLED  11
 #define BUILTIN_DISTANCE_PWM 218
@@ -356,6 +361,22 @@ int STEMDu::readSlider(){
 bool STEMDu::readPush(){
 	pinMode(P_PUSH,INPUT_PULLUP);
 	return !digitalRead(P_PUSH);
+}
+
+int STEMDu::readResistanceA(){
+	return analogRead(P_RESISTA);
+}
+
+int STEMDu::readResistanceB(){
+	return analogRead(P_RESISTB);
+}
+
+int STEMDu::readResistanceC(){
+	return analogRead(P_RESISTC);
+}
+
+int STEMDu::readResistanceD(){
+	return analogRead(P_RESISTD);
 }
 
 #if defined(HAS_ONBBOARD_DISTANCE)

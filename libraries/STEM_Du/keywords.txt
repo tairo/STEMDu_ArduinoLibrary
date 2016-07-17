@@ -62,6 +62,10 @@ readLight	KEYWORD2
 readSlider	KEYWORD2
 initPush	KEYWORD2
 readPush	KEYWORD2
+readResistanceA	KEYWORD2
+readResistanceB	KEYWORD2
+readResistanceC	KEYWORD2
+readResistanceD KEYWORD2
 
 initBuiltinDistance	KEYWORD2
 readBuiltinDistance KEYWORD2
@@ -75,6 +79,12 @@ readPhRef3	KEYWORD2
 readPhRef4	KEYWORD2
 
 led	KEYWORD2
+
+initBuiltinDistance         KEYWORD2
+initBuiltinDistanceNoBuffer KEYWORD2
+readBuiltinDistance         KEYWORD2
+readBuiltinDistanceNoBuffer KEYWORD2
+
 #######################################
 # Constants (LITERAL1)
 #######################################
